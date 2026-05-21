@@ -131,3 +131,13 @@ app.get("/available-tutors", async (req, res) => {
     }
 
 });
+
+app.get("/my-tutors", async (req, res) => {
+  const userId = req.query.userId;
+
+  const result = await tutorCollection
+    .find({ created_by: userId })
+    .toArray();
+
+  res.send(result);
+});
