@@ -1,0 +1,22 @@
+{
+  "name": "tutor-node-server",
+  "version": "1.0.0",
+  "description": "node server project named tutor booking",
+  "keywords": [
+    "tutor",
+    "tutor",
+    "booking"
+  ],
+  "license": "ISC",
+  "author": "supayan",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "expres": "^0.0.5",
+    "express": "^5.2.1"
+  }
+}
