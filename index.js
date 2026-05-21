@@ -20,6 +20,7 @@ const client = new MongoClient(uri, {
 });
 
 let tutorCollection;
+let bookingsCollection;
 
 // START SERVER
 app.listen(PORT, "0.0.0.0", () => {
@@ -34,6 +35,7 @@ async function connectDB() {
     const db = client.db("tutorDB");
 
     tutorCollection = db.collection("tutors");
+    bookingsCollection = db.collection("bookings");
 
     console.log("MongoDB connected");
 
@@ -140,4 +142,34 @@ app.get("/my-tutors", async (req, res) => {
     .toArray();
 
   res.send(result);
+});
+
+app.post("/bookings", async (req, res) => {
+
+    try {
+
+        const bookingData = req.body;
+
+        const result = await bookingsCollection.insertOne({
+            ...bookingData,
+            createdAt: new Date(),
+        });
+
+        res.send({
+            success: true,
+            insertedId: result.insertedId,
+            message: "Booking successful",
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).send({
+            success: false,
+            message: "Failed to save booking",
+        });
+
+    }
+
 });
