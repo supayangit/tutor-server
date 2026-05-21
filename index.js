@@ -112,3 +112,22 @@ app.post("/tutors", async (req, res) => {
     });
   }
 });
+
+app.get("/available-tutors", async (req, res) => {
+
+    try {
+
+        const tutors = await tutorCollection
+            .find()
+            .limit(6)   // MongoDB $limit equivalent
+            .toArray();
+
+        res.send(tutors);
+
+    } catch (err) {
+
+        res.status(500).send({ message: "Failed to fetch tutors" });
+
+    }
+
+});
