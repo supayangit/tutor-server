@@ -115,6 +115,55 @@ app.post("/tutors", async (req, res) => {
   }
 });
 
+app.put("/tutors/:id", async (req, res) => {
+
+    try {
+
+        const id = req.params.id;
+
+        const updatedTutor = req.body;
+
+        const filter = {
+            _id: new ObjectId(id),
+        };
+
+        const updatedDoc = {
+            $set: {
+                tutorName: updatedTutor.tutorName,
+                photo: updatedTutor.photo,
+                subject: updatedTutor.subject,
+                availableDays: updatedTutor.availableDays,
+                availableTime: updatedTutor.availableTime,
+                hourlyFee: updatedTutor.hourlyFee,
+                totalSlot: updatedTutor.totalSlot,
+                sessionDate: updatedTutor.sessionDate,
+                institution: updatedTutor.institution,
+                experience: updatedTutor.experience,
+                location: updatedTutor.location,
+                teachingMode: updatedTutor.teachingMode,
+            },
+        };
+
+        const result = await tutorCollection.updateOne(
+            filter,
+            updatedDoc
+        );
+
+        res.send(result);
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).send({
+            success: false,
+            message: "Failed to update tutor",
+        });
+
+    }
+
+});
+
 app.get("/available-tutors", async (req, res) => {
 
     try {
@@ -171,5 +220,62 @@ app.post("/bookings", async (req, res) => {
         });
 
     }
+
+});
+
+app.get("/bookings/student/:studentId", async (req, res) => {
+
+    try {
+
+        const studentId = req.params.studentId;
+
+        const bookings = await bookingsCollection
+            .find({ studentId })
+            .toArray();
+
+        res.send(bookings);
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).send({
+            success: false,
+            message: "Failed to get bookings",
+        });
+
+    }
+
+});
+
+app.patch("/bookings/:id", async (req, res) => {
+
+    try {
+
+        const id = req.params.id;
+
+        const updatedData = req.body;
+
+        const result = await bookingsCollection.updateOne(
+            {
+                _id: new ObjectId(id),
+            },
+            {
+                $set: updatedData,
+            }
+        );
+
+        res.send(result);
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).send({
+            message: "Failed to update booking",
+        });
+
+    }
+
 
 });
