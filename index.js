@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-// GET ALL TUTORS
+// GET ALL THE TUTORS
 app.get("/tutors", async (req, res) => {
   try {
 
@@ -80,7 +80,6 @@ app.get("/tutors/:id", async (req, res) => {
     const tutor = await tutorCollection.findOne({
         _id: new ObjectId(id),
     });
-
     res.status(200).json(tutor);
 
 });
