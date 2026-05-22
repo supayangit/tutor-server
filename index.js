@@ -81,7 +81,7 @@ app.get("/tutors/:id", async (req, res) => {
         _id: new ObjectId(id),
     });
 
-    res.send(tutor);
+    res.status(200).json(tutor);
 
 });
 
