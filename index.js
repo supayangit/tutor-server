@@ -278,3 +278,42 @@ app.patch("/bookings/:id", async (req, res) => {
 
 
 });
+
+app.put("/users/:id", async (req, res) => {
+
+  try {
+
+    const id = req.params.id;
+
+    const updated = req.body;
+
+    const result = await userCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name: updated.name,
+          email: updated.email,
+          image: updated.image,
+          phone: updated.phone || ""
+        }
+      }
+    );
+
+    res.send({
+      success: true,
+      message: "Profile updated",
+      updatedUser: updated
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).send({
+      success: false,
+      message: "Update failed"
+    });
+
+  }
+
+});
