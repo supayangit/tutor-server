@@ -23,9 +23,14 @@ let tutorCollection;
 let bookingsCollection;
 
 // START SERVER
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on ${PORT}`);
-});
+// Run locally only
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
+  });
+}
+
+module.exports = app;
 
 // CONNECT DATABASE
 async function connectDB() {
