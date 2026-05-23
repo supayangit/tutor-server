@@ -4,13 +4,13 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
 
-const uri = process.env.MONGODB_URI;
+// -------------------- MONGO SETUP --------------------
 
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -19,306 +19,207 @@ const client = new MongoClient(uri, {
   },
 });
 
+let db;
 let tutorCollection;
 let bookingsCollection;
+let userCollection;
 
-// START SERVER
-// Run locally only
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
-  });
+// Lazy DB connection (IMPORTANT for Vercel)
+async function connectDB() {
+  if (db) return db;
+
+  await client.connect();
+  db = client.db("tutorDB");
+
+  tutorCollection = db.collection("tutors");
+  bookingsCollection = db.collection("bookings");
+  userCollection = db.collection("users");
+
+  console.log("MongoDB connected");
+  return db;
 }
 
-module.exports = app;
-
-// CONNECT DATABASE
-async function connectDB() {
+// Middleware to ensure DB is ready
+async function ensureDB(req, res, next) {
   try {
-    await client.connect();
-
-    const db = client.db("tutorDB");
-
-    tutorCollection = db.collection("tutors");
-    bookingsCollection = db.collection("bookings");
-
-    console.log("MongoDB connected");
-
+    if (!tutorCollection) {
+      await connectDB();
+    }
+    next();
   } catch (err) {
-    console.error("Mongo error:", err);
+    console.error("DB connection error:", err);
+    res.status(500).send({ message: "Database connection failed" });
   }
 }
 
-connectDB();
+// -------------------- ROUTES --------------------
 
-// ROOT ROUTE
+// ROOT
 app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-// GET ALL THE TUTORS
-app.get("/tutors", async (req, res) => {
+// GET ALL TUTORS
+app.get("/tutors", ensureDB, async (req, res) => {
   try {
-
-    if (!tutorCollection) {
-      return res.status(500).send("DB not ready");
-    }
-
     const allTutors = await tutorCollection.find().toArray();
-
     res.send(allTutors);
-
   } catch (err) {
-    console.error(err);
-
-    res.status(500).send({
-      success: false,
-      message: "Failed to fetch tutors",
-    });
+    res.status(500).send({ message: "Failed to fetch tutors" });
   }
 });
 
-app.get("/tutors/:id", async (req, res) => {
-
-    const id = req.params.id;
-
+// GET SINGLE TUTOR
+app.get("/tutors/:id", ensureDB, async (req, res) => {
+  try {
     const tutor = await tutorCollection.findOne({
-        _id: new ObjectId(id),
+      _id: new ObjectId(req.params.id),
     });
-    res.status(200).json(tutor);
 
+    res.status(200).json(tutor);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to fetch tutor" });
+  }
 });
 
+
 // ADD TUTOR
-app.post("/tutors", async (req, res) => {
+app.post("/tutors", ensureDB, async (req, res) => {
   try {
-
-    if (!tutorCollection) {
-      return res.status(500).send("DB not ready");
-    }
-
-    const newTutor = req.body;
-
-    const result = await tutorCollection.insertOne(newTutor);
-
-    console.log("Inserted tutor:", result);
+    const result = await tutorCollection.insertOne(req.body);
 
     res.send({
       success: true,
       insertedId: result.insertedId,
-      message: "Tutor added successfully",
     });
-
   } catch (err) {
-    console.error(err);
-
-    res.status(500).send({
-      success: false,
-      message: "Failed to add tutor",
-    });
+    res.status(500).send({ message: "Failed to add tutor" });
   }
 });
 
-app.put("/tutors/:id", async (req, res) => {
-
-    try {
-
-        const id = req.params.id;
-
-        const updatedTutor = req.body;
-
-        const filter = {
-            _id: new ObjectId(id),
-        };
-
-        const updatedDoc = {
-            $set: {
-                tutorName: updatedTutor.tutorName,
-                photo: updatedTutor.photo,
-                subject: updatedTutor.subject,
-                availableDays: updatedTutor.availableDays,
-                availableTime: updatedTutor.availableTime,
-                hourlyFee: updatedTutor.hourlyFee,
-                totalSlot: updatedTutor.totalSlot,
-                sessionDate: updatedTutor.sessionDate,
-                institution: updatedTutor.institution,
-                experience: updatedTutor.experience,
-                location: updatedTutor.location,
-                teachingMode: updatedTutor.teachingMode,
-            },
-        };
-
-        const result = await tutorCollection.updateOne(
-            filter,
-            updatedDoc
-        );
-
-        res.send(result);
-
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).send({
-            success: false,
-            message: "Failed to update tutor",
-        });
-
-    }
-
-});
-
-app.get("/available-tutors", async (req, res) => {
-
-    try {
-
-        const tutors = await tutorCollection
-            .find()
-            .limit(6)   // MongoDB $limit equivalent
-            .toArray();
-
-        res.send(tutors);
-
-    } catch (err) {
-
-        res.status(500).send({ message: "Failed to fetch tutors" });
-
-    }
-
-});
-
-app.get("/my-tutors", async (req, res) => {
-  const userId = req.query.userId;
-
-  const result = await tutorCollection
-    .find({ created_by: userId })
-    .toArray();
-
-  res.send(result);
-});
-
-app.post("/bookings", async (req, res) => {
-
-    try {
-
-        const bookingData = req.body;
-
-        const result = await bookingsCollection.insertOne({
-            ...bookingData,
-            createdAt: new Date(),
-        });
-
-        res.send({
-            success: true,
-            insertedId: result.insertedId,
-            message: "Booking successful",
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).send({
-            success: false,
-            message: "Failed to save booking",
-        });
-
-    }
-
-});
-
-app.get("/bookings/student/:studentId", async (req, res) => {
-
-    try {
-
-        const studentId = req.params.studentId;
-
-        const bookings = await bookingsCollection
-            .find({ studentId })
-            .toArray();
-
-        res.send(bookings);
-
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).send({
-            success: false,
-            message: "Failed to get bookings",
-        });
-
-    }
-
-});
-
-app.patch("/bookings/:id", async (req, res) => {
-
-    try {
-
-        const id = req.params.id;
-
-        const updatedData = req.body;
-
-        const result = await bookingsCollection.updateOne(
-            {
-                _id: new ObjectId(id),
-            },
-            {
-                $set: updatedData,
-            }
-        );
-
-        res.send(result);
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).send({
-            message: "Failed to update booking",
-        });
-
-    }
-
-
-});
-
-app.put("/users/:id", async (req, res) => {
-
+// UPDATE TUTOR
+app.put("/tutors/:id", ensureDB, async (req, res) => {
   try {
+    const result = await tutorCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      {
+        $set: req.body,
+      }
+    );
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update tutor" });
+  }
+});
+
+// delete tutor
+app.delete("/tutors/:id", async (req, res) => {
 
     const id = req.params.id;
 
+    const query = { _id: new ObjectId(id) };
+
+    const result = await tutorCollection.deleteOne(query);
+
+    res.send(result);
+
+});
+
+// AVAILABLE TUTORS
+app.get("/available-tutors", ensureDB, async (req, res) => {
+  try {
+    const tutors = await tutorCollection.find().limit(6).toArray();
+    res.send(tutors);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to fetch tutors" });
+  }
+});
+
+// MY TUTORS
+app.get("/my-tutors", ensureDB, async (req, res) => {
+  try {
+    const result = await tutorCollection
+      .find({ created_by: req.query.userId })
+      .toArray();
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to fetch" });
+  }
+});
+
+// ---------------- BOOKINGS ----------------
+
+// CREATE BOOKING
+app.post("/bookings", ensureDB, async (req, res) => {
+  try {
+    const result = await bookingsCollection.insertOne({
+      ...req.body,
+      createdAt: new Date(),
+    });
+
+    res.send({ success: true, insertedId: result.insertedId });
+  } catch (err) {
+    res.status(500).send({ message: "Booking failed" });
+  }
+});
+
+// GET BOOKINGS
+app.get("/bookings/student/:studentId", ensureDB, async (req, res) => {
+  try {
+    const bookings = await bookingsCollection
+      .find({ studentId: req.params.studentId })
+      .toArray();
+
+    res.send(bookings);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to get bookings" });
+  }
+});
+
+// UPDATE BOOKING
+app.patch("/bookings/:id", ensureDB, async (req, res) => {
+  try {
+    const result = await bookingsCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: req.body }
+    );
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to update booking" });
+  }
+});
+
+// ---------------- USER ----------------
+
+// UPDATE USER
+app.put("/users/:id", ensureDB, async (req, res) => {
+  try {
     const updated = req.body;
 
     const result = await userCollection.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: new ObjectId(req.params.id) },
       {
         $set: {
           name: updated.name,
           email: updated.email,
           image: updated.image,
-          phone: updated.phone || ""
-        }
+          phone: updated.phone || "",
+        },
       }
     );
 
     res.send({
       success: true,
       message: "Profile updated",
-      updatedUser: updated
+      result,
     });
-
   } catch (err) {
-
-    console.error(err);
-
-    res.status(500).send({
-      success: false,
-      message: "Update failed"
-    });
-
+    res.status(500).send({ message: "Update failed" });
   }
-
 });
+
+// ---------------- EXPORT ----------------
+module.exports = app;
