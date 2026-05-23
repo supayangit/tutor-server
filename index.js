@@ -75,14 +75,28 @@ app.get("/tutors", ensureDB, async (req, res) => {
       },
     };
 
-    // date filter
-    if (startDate && endDate) {
+    // DATE FILTER
+    if (startDate || endDate) {
 
-      query.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+      query.createdAt = {};
 
+      // start date
+      if (startDate) {
+
+        query.createdAt.$gte = new Date(startDate);
+
+      }
+
+      // end date (full day included)
+      if (endDate) {
+
+        const end = new Date(endDate);
+
+        end.setHours(23, 59, 59, 999);
+
+        query.createdAt.$lte = end;
+
+      }
     }
 
     const allTutors = await tutorCollection
