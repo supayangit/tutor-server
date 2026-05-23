@@ -79,26 +79,24 @@ app.get("/tutors", ensureDB, async (req, res) => {
 
     };
 
-    // DATE FILTER LOGIC
+    // DATE FILTER
     if (startDate || endDate) {
 
       query.createdAt = {};
 
-      // only start date
+      // START DATE
       if (startDate) {
 
-        query.createdAt.$gte = new Date(
-          `${startDate}T00:00:00.000Z`
-        );
+        query.createdAt.$gte =
+          `${startDate}T00:00:00.000Z`;
 
       }
 
-      // only end date
+      // END DATE
       if (endDate) {
 
-        query.createdAt.$lte = new Date(
-          `${endDate}T23:59:59.999Z`
-        );
+        query.createdAt.$lte =
+          `${endDate}T23:59:59.999Z`;
 
       }
 
