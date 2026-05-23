@@ -64,54 +64,62 @@ app.get("/tutors", ensureDB, async (req, res) => {
 
   try {
 
-    const search = req.query.search || "";
-    const startDate = req.query.startDate;
-    const endDate = req.query.endDate;
+    const {
+      search = "",
+      startDate,
+      endDate,
+    } = req.query;
 
-    let query = {
+    const query = {
+
       tutorName: {
         $regex: search,
         $options: "i",
-      },
+      }
+
     };
 
-    // DATE FILTER
+    // DATE FILTER LOGIC
     if (startDate || endDate) {
 
       query.createdAt = {};
 
-      // start date
+      // only start date
       if (startDate) {
 
-        query.createdAt.$gte = new Date(startDate);
+        query.createdAt.$gte = new Date(
+          `${startDate}T00:00:00.000Z`
+        );
 
       }
 
-      // end date (full day included)
+      // only end date
       if (endDate) {
 
-        const end = new Date(endDate);
-
-        end.setHours(23, 59, 59, 999);
-
-        query.createdAt.$lte = end;
+        query.createdAt.$lte = new Date(
+          `${endDate}T23:59:59.999Z`
+        );
 
       }
+
     }
 
-    const allTutors = await tutorCollection
+    const tutors = await tutorCollection
       .find(query)
       .toArray();
 
-    res.send(allTutors);
+    res.send(tutors);
 
   } catch (err) {
+
+    console.error(err);
 
     res.status(500).send({
       message: "Failed to fetch tutors",
     });
 
   }
+
 });
 
 // GET SINGLE TUTOR
