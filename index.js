@@ -59,19 +59,31 @@ app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-// GET ALL TUTORS WITH SEARCH
+// GET ALL TUTORS + SEARCH + DATE FILTER
 app.get("/tutors", ensureDB, async (req, res) => {
 
   try {
 
     const search = req.query.search || "";
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
 
-    const query = {
+    let query = {
       tutorName: {
         $regex: search,
-        $options: "i", // case-insensitive
+        $options: "i",
       },
     };
+
+    // date filter
+    if (startDate && endDate) {
+
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+
+    }
 
     const allTutors = await tutorCollection
       .find(query)
