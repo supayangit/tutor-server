@@ -59,13 +59,32 @@ app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-// GET ALL TUTORS
+// GET ALL TUTORS WITH SEARCH
 app.get("/tutors", ensureDB, async (req, res) => {
+
   try {
-    const allTutors = await tutorCollection.find().toArray();
+
+    const search = req.query.search || "";
+
+    const query = {
+      tutorName: {
+        $regex: search,
+        $options: "i", // case-insensitive
+      },
+    };
+
+    const allTutors = await tutorCollection
+      .find(query)
+      .toArray();
+
     res.send(allTutors);
+
   } catch (err) {
-    res.status(500).send({ message: "Failed to fetch tutors" });
+
+    res.status(500).send({
+      message: "Failed to fetch tutors",
+    });
+
   }
 });
 
