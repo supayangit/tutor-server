@@ -126,10 +126,13 @@ app.delete("/tutors/:id", async (req, res) => {
 
 });
 
-// AVAILABLE TUTORS
+// Available/Feature TUTORS
 app.get("/available-tutors", ensureDB, async (req, res) => {
   try {
-    const tutors = await tutorCollection.find().limit(6).toArray();
+    const tutors = await tutorCollection.aggregate([
+      { $limit: 6 }
+    ]).toArray();
+
     res.send(tutors);
   } catch (err) {
     res.status(500).send({ message: "Failed to fetch tutors" });
